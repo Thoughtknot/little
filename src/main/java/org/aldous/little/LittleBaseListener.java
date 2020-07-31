@@ -126,6 +126,18 @@ public class LittleBaseListener implements LittleListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterCopy(LittleParser.CopyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCopy(LittleParser.CopyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterDivision(LittleParser.DivisionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -229,6 +241,18 @@ public class LittleBaseListener implements LittleListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitMultiplication(LittleParser.MultiplicationContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterGetc(LittleParser.GetcContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitGetc(LittleParser.GetcContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

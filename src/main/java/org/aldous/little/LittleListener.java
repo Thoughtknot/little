@@ -112,6 +112,18 @@ public interface LittleListener extends ParseTreeListener {
 	 */
 	void exitPrint(LittleParser.PrintContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code copy}
+	 * labeled alternative in {@link LittleParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterCopy(LittleParser.CopyContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code copy}
+	 * labeled alternative in {@link LittleParser#statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitCopy(LittleParser.CopyContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code division}
 	 * labeled alternative in {@link LittleParser#expression}.
 	 * @param ctx the parse tree
@@ -219,6 +231,18 @@ public interface LittleListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitMultiplication(LittleParser.MultiplicationContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code getc}
+	 * labeled alternative in {@link LittleParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterGetc(LittleParser.GetcContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code getc}
+	 * labeled alternative in {@link LittleParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitGetc(LittleParser.GetcContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code addition}
 	 * labeled alternative in {@link LittleParser#expression}.

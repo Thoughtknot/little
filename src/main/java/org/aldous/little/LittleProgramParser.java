@@ -12,7 +12,9 @@ import org.aldous.little.LittleParser.AdditionContext;
 import org.aldous.little.LittleParser.ArrayAssContext;
 import org.aldous.little.LittleParser.ArrayRefContext;
 import org.aldous.little.LittleParser.CharLiteralContext;
+import org.aldous.little.LittleParser.CopyContext;
 import org.aldous.little.LittleParser.ExpressionContext;
+import org.aldous.little.LittleParser.GetcContext;
 import org.aldous.little.LittleParser.IfContext;
 import org.aldous.little.LittleParser.IntLiteralContext;
 import org.aldous.little.LittleParser.LineContext;
@@ -83,6 +85,10 @@ public class LittleProgramParser {
 			MultiplicationContext ctxt = (MultiplicationContext) exp;
 			return new Multiply(parseExpression(ctxt.left), parseExpression(ctxt.right));
 		}
+		else if (exp instanceof GetcContext) {
+			GetcContext ctxt = (GetcContext) exp;
+			return new Getc();
+		}
 		return null;
 	}
 
@@ -118,6 +124,11 @@ public class LittleProgramParser {
 				.collect(Collectors.toList());
 			return new Loop(parseExpression(ctxt.expression()), statements);
 		}
+		else if (stmt instanceof CopyContext) {
+			CopyContext ctxt = (CopyContext) stmt;
+			String name = ctxt.VARIABLE_ID().getText();
+			return new Copy(name, parseExpression(ctxt.expression()));
+		}
 		else if (stmt instanceof IfContext) {
 			IfContext ctxt = (IfContext) stmt;
 			List<Statement> statements = ctxt
@@ -145,6 +156,7 @@ public class LittleProgramParser {
 	public static interface Expression {
 		List<Instruction> load(CompilerContext compilerContext, int register);
 		LittleType getType(CompilerContext compilerContext);
+		int getSize();
 	}
 
 	public static interface Statement {
@@ -182,6 +194,11 @@ public class LittleProgramParser {
 		public LittleType getType(CompilerContext compilerContext) {
 			return LittleType.INT;
 		}
+
+		@Override
+		public int getSize() {
+			return 1;
+		}
 	}
 	
 	public static class VarRef implements Expression {
@@ -204,6 +221,11 @@ public class LittleProgramParser {
 		@Override
 		public LittleType getType(CompilerContext compilerContext) {
 			return compilerContext.getType(name);
+		}
+
+		@Override
+		public int getSize() {
+			return 1;
 		}
 	}
 
@@ -262,6 +284,11 @@ public class LittleProgramParser {
 		public LittleType getType(CompilerContext compilerContext) {
 			return LittleType.INT;
 		}
+
+		@Override
+		public int getSize() {
+			return 1;
+		}
 	}
 	
 	public static class Subtraction implements Expression {
@@ -296,6 +323,11 @@ public class LittleProgramParser {
 		public LittleType getType(CompilerContext compilerContext) {
 			return LittleType.INT;
 		}
+		
+		@Override
+		public int getSize() {
+			return 1;
+		}
 	}
 	
 	public static class Addition implements Expression {
@@ -327,6 +359,11 @@ public class LittleProgramParser {
 		@Override
 		public LittleType getType(CompilerContext compilerContext) {
 			return LittleType.INT;
+		}
+
+		@Override
+		public int getSize() {
+			return 1;
 		}
 	}
 
@@ -364,6 +401,11 @@ public class LittleProgramParser {
 		public LittleType getType(CompilerContext compilerContext) {
 			return LittleType.ARRAY;
 		}
+
+		@Override
+		public int getSize() {
+			return value.length() - 1;
+		}
 	}
 	
 	public static class IntLiteral implements Expression {
@@ -395,8 +437,34 @@ public class LittleProgramParser {
 		public LittleType getType(CompilerContext compilerContext) {
 			return LittleType.INT;
 		}
+
+		@Override
+		public int getSize() {
+			return 1;
+		}
 	}
 
+	public static class Getc implements Expression {
+
+		@Override
+		public List<Instruction> load(CompilerContext compilerContext, int register) {
+			return List.of(
+				new Instruction("AND R" + register + ", R" + register + ", #0"),	
+				new Instruction("GETC"),
+				new Instruction("ADD R" + register + ", R0, R" + register));
+		}
+		
+		@Override
+		public LittleType getType(CompilerContext compilerContext) {
+			return LittleType.INT;
+		}
+
+		@Override
+		public int getSize() {
+			return 1;
+		}
+	}
+	
 	public static class PrintStmt implements Statement {
 		private Expression expression;
 
@@ -407,15 +475,16 @@ public class LittleProgramParser {
 		@Override
 		public List<Instruction> emit(CompilerContext compilerContext) {
 			List<Instruction> instructions = new ArrayList<>();
-			int register = compilerContext.getFirstUnblockedRegister();
+			int register = 0;
+			compilerContext.blockRegister(register);
 			instructions.addAll(expression.load(compilerContext, register));
+			compilerContext.unblock(register);
 			if (expression.getType(compilerContext) == LittleType.ARRAY) {
 				instructions.add(new Instruction("PUTS"));
 			}
 			else {
 				instructions.add(new Instruction("OUT"));
 			}
-			compilerContext.unblock(register);
 			return instructions;
 		}
 	}
@@ -491,6 +560,68 @@ public class LittleProgramParser {
 		public LittleType getType() {
 			return size == 1 ? LittleType.INT : LittleType.ARRAY;
 		}
+	}
+	
+	public static class Copy implements Statement {
+		private final String name;
+		private final Expression exp;
+
+		public Copy(String name, Expression exp) {
+			this.name = name;
+			this.exp = exp;
+		}
+
+		@Override
+		public List<Instruction> emit(CompilerContext compilerContext) {
+			int size = exp.getSize();
+			List<Instruction> instructions = new ArrayList<>();
+			String startLabel = compilerContext.getNextLoop();
+			String endLabel = compilerContext.getNextLoop();
+			Instruction labelStart = new Instruction(startLabel);
+			int reg0 = compilerContext.getFirstUnblockedRegister();
+			int reg1 = compilerContext.getFirstUnblockedRegister();
+			int reg2 = compilerContext.getFirstUnblockedRegister();
+			int reg3 = compilerContext.getFirstUnblockedRegister();
+			int reg4 = compilerContext.getFirstUnblockedRegister();
+			int reg5 = compilerContext.getFirstUnblockedRegister();
+
+			instructions.add(new Instruction("LEA R" + reg5 + ", " + name.toUpperCase()));
+			instructions.add(new Instruction("AND R" + reg0 + ", R" + reg0 + ", #0"));
+			instructions.add(new Instruction("AND R" + reg1 + ", R" + reg1 + ", #0"));
+			instructions.add(new Instruction("ADD R" + reg1 + ", R" + reg1 + ", #" + size));
+			instructions.add(new Instruction("NOT R" + reg1 + ", R" + reg1));
+			instructions.add(new Instruction("ADD R" + reg1 + ", R" + reg1 + ", #1"));
+			instructions.addAll(exp.load(compilerContext, reg3));
+			instructions.add(labelStart);
+			
+			instructions.add(new Instruction("ADD R" + reg2 + ", R" + reg1 + ", R" + reg0));
+			instructions.add(new Instruction("BRp " + endLabel));
+			
+			// BODY - load the actual value currently pointed to - store it in the label + index
+			instructions.add(new Instruction("LDR R" + reg4 + ", R" + reg3 + ", #0"));
+			instructions.add(new Instruction("STR R" + reg4 + ", R" + reg5 + ", #0"));
+			
+			//incr pointer
+			instructions.add(new Instruction("ADD R" + reg3 + ", R" + reg3 + ", #1")); 
+			instructions.add(new Instruction("ADD R" + reg5 + ", R" + reg5 + ", #1")); 
+			//incr index
+			instructions.add(new Instruction("ADD R" + reg0 + ", R" + reg0 + ", #1"));
+			
+			//end
+			Instruction jumpToStart = new Instruction("BR " + startLabel);
+			instructions.add(jumpToStart);
+			Instruction labelEnd = new Instruction(endLabel);
+			instructions.add(labelEnd);
+			
+			compilerContext.unblock(reg0);
+			compilerContext.unblock(reg1);
+			compilerContext.unblock(reg2);
+			compilerContext.unblock(reg3);
+			compilerContext.unblock(reg4);
+			compilerContext.unblock(reg5);
+			return instructions;
+		}
+		
 	}
 	
 	public static class Loop implements Statement {

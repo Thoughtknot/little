@@ -48,6 +48,7 @@ public class LittleCompiler {
 			if (stmt instanceof VarDec) {
 				VarDec varDec = (VarDec) stmt;
 				compilerContext.addType(varDec.name, varDec.getType());
+				compilerContext.addSize(varDec.name, varDec.size);
 			}
 		}
 		return compilerContext;
@@ -56,13 +57,14 @@ public class LittleCompiler {
 	public static class CompilerContext {
 		public final Set<String> labelForConstants = new HashSet<>();
 		public final Map<String, LittleType> varToType = new HashMap<>();
+		public final Map<String, Integer> varToSize = new HashMap<>();
 		public final boolean[] registersBlocked = new boolean[8];
 		private int loopCount = 0;
 		
 		public boolean hasConstant(String value) {
 			return labelForConstants.contains(value);
 		}
-		
+
 		public boolean hasConstant(int value) {
 			String label = toAlphabetic(value);
 			return labelForConstants.contains(label);
@@ -101,16 +103,28 @@ public class LittleCompiler {
 		public void unblock(int i) {
 			registersBlocked[i] = false;
 		}
+
+		public void blockRegister(int i) {
+			registersBlocked[i] = true;
+		}
 		
 		public int getFirstUnblockedRegister() {
-			for (int i = 0; i < registersBlocked.length; i++) {
+			for (int i = registersBlocked.length - 1; i >= 0; i--) {
 				if (!registersBlocked[i]) {
 					registersBlocked[i] = true;
 					return i;
 				}
 			}
 			System.out.println("No registers available!");
-			return -1;
+			throw new RuntimeException();
+		}
+
+		public void addSize(String name, int size) {
+			varToSize.put(name, size);
+		}
+		
+		public int getSize(String name) {
+			return varToSize.get(name);
 		}
 		
 		public void addType(String name, LittleType type) {

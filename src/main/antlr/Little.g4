@@ -16,7 +16,9 @@ LOOP : 'loop';
 TRUE: 'true';
 FALSE: 'false';
 PRINT: 'print';
+GETC: 'getc';
 DEF: 'def';
+COPY: 'copy';
 IF: 'if';
 ELIF: 'elif';
 ELSE: 'else';
@@ -54,8 +56,9 @@ statement: DEF VARIABLE_ID (LSPAREN size=INT_LIT RSPAREN)? #varDec
         | VARIABLE_ID LSPAREN index=expression RSPAREN LARROW value=expression #arrayAss
         | LOOP expression LCPAREN (statement SEMIC)+ RCPAREN #loop
         | IF ifc=expression LCPAREN (statement SEMIC)+ RCPAREN elseStmt? #if
-        | PRINT expression #print;
-
+        | PRINT expression #print
+        | COPY expression RARROW VARIABLE_ID #copy
+        ;
 
 expression: VARIABLE_ID # variableReference
    | left=expression ASTERISK right=expression #multiplication
@@ -67,4 +70,5 @@ expression: VARIABLE_ID # variableReference
    | STR_LIT #stringLiteral
    | LPAREN expression RPAREN # paren
    | VARIABLE_ID LSPAREN expression RSPAREN # arrayRef
+   | GETC LPAREN RPAREN #getc
    ;

@@ -143,6 +143,24 @@ public class LittleCompilerTest {
 		String val = "print \"Hello, world!\";\n";
 		writeProgram(val, "comp11.obj");
 	}
+	
+	@Test
+	public void getChar() throws IOException {
+		String val = "def a;\n"
+			+ "a <- getc();\n"
+			+ "print a;\n"
+			+ "print '\n';\n";
+		writeProgram(val, "comp12.obj");
+	}
+
+	@Test
+	public void copyString() throws IOException {
+		String val = "def a[6];\n"
+			+ "copy \"Hello\" -> a;\n"
+			+ "print a;\n";
+		writeProgram(val, "comp13.obj");
+	}
+	
 	private void writeProgram(String val, String path) throws IOException {
 		System.out.println(val);
 		final Program prog = LittleProgramParser.parse(val);
