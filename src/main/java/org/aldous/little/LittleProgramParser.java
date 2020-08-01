@@ -13,6 +13,7 @@ import org.aldous.little.LittleParser.ArrayAssContext;
 import org.aldous.little.LittleParser.ArrayRefContext;
 import org.aldous.little.LittleParser.CharLiteralContext;
 import org.aldous.little.LittleParser.CopyContext;
+import org.aldous.little.LittleParser.EqualsContext;
 import org.aldous.little.LittleParser.ExpressionContext;
 import org.aldous.little.LittleParser.GetcContext;
 import org.aldous.little.LittleParser.IfContext;
@@ -20,6 +21,7 @@ import org.aldous.little.LittleParser.IntLiteralContext;
 import org.aldous.little.LittleParser.LineContext;
 import org.aldous.little.LittleParser.LoopContext;
 import org.aldous.little.LittleParser.MultiplicationContext;
+import org.aldous.little.LittleParser.NotContext;
 import org.aldous.little.LittleParser.ParenContext;
 import org.aldous.little.LittleParser.PrintContext;
 import org.aldous.little.LittleParser.StatementContext;
@@ -85,9 +87,16 @@ public class LittleProgramParser {
 			MultiplicationContext ctxt = (MultiplicationContext) exp;
 			return new Multiply(parseExpression(ctxt.left), parseExpression(ctxt.right));
 		}
+		else if (exp instanceof EqualsContext) {
+			EqualsContext ctxt = (EqualsContext) exp;
+			return new Equal(parseExpression(ctxt.left), parseExpression(ctxt.right));
+		}
 		else if (exp instanceof GetcContext) {
-			GetcContext ctxt = (GetcContext) exp;
 			return new Getc();
+		}
+		else if (exp instanceof NotContext) {
+			NotContext ctxt = (NotContext) exp;
+			return new Not(parseExpression(ctxt.expression()));
 		}
 		return null;
 	}
@@ -444,13 +453,97 @@ public class LittleProgramParser {
 		}
 	}
 
+	public static class Not implements Expression {
+		private final Expression exp;
+
+		public Not(Expression exp) {
+			this.exp = exp;
+		}
+
+		@Override
+		public List<Instruction> load(CompilerContext compilerContext, int register) {
+			List<Instruction> instructions = new ArrayList<>();
+			compilerContext.blockRegister(0);
+			instructions.addAll(exp.load(compilerContext, 0));
+			String endLabel = compilerContext.getNextLoop();
+			String finalLabel = compilerContext.getNextLoop();
+			instructions.add(new Instruction("BRp " + endLabel));
+			instructions.add(new Instruction("ADD R" + register + ", R" + register + ", #1"));
+			instructions.add(new Instruction("BR " + finalLabel));
+			instructions.add(new Instruction(endLabel));
+			instructions.add(new Instruction("AND R" + register + ", R" + register + ", #0"));
+			instructions.add(new Instruction(finalLabel));
+			compilerContext.unblock(0);
+			return instructions;
+		}
+		
+		@Override
+		public LittleType getType(CompilerContext compilerContext) {
+			return exp.getType(compilerContext);
+		}
+
+		@Override
+		public int getSize() {
+			return exp.getSize();
+		}
+	}
+
+	public static class Equal implements Expression {
+		private final Expression left;
+		private final Expression right;
+
+		public Equal(Expression left, Expression right) {
+			this.left = left;
+			this.right = right;
+		}
+
+		@Override
+		public List<Instruction> load(CompilerContext compilerContext, int register) {
+			List<Instruction> instructions = new ArrayList<>();
+			
+			int reg1 = compilerContext.getFirstUnblockedRegister();
+			int reg2 = compilerContext.getFirstUnblockedRegister();
+			instructions.addAll(left.load(compilerContext, reg1));
+			instructions.addAll(right.load(compilerContext, reg2));
+			instructions.add(new Instruction("AND R0, R0, #0"));
+			instructions.add(new Instruction("AND R" + register + ", R" + register + ", #0"));
+			
+			instructions.add(new Instruction("NOT R" + reg2 + ", R" + reg2));
+			instructions.add(new Instruction("ADD R" + reg2 + ", R" + reg2 + ", #1"));
+			instructions.add(new Instruction("ADD R" + 0 + ", R" + reg2 + ", R" + reg1));
+			
+			String endLabel = compilerContext.getNextLoop();
+			String finalLabel = compilerContext.getNextLoop();
+			instructions.add(new Instruction("BRnp " + endLabel));
+			instructions.add(new Instruction("ADD R" + register + ", R" + register + ", #1"));
+			instructions.add(new Instruction("BR " + finalLabel));
+			instructions.add(new Instruction(endLabel));
+			instructions.add(new Instruction("ADD R" + register + ", R" + register + ", #0"));
+			instructions.add(new Instruction(finalLabel));
+			
+			compilerContext.unblock(reg1);
+			compilerContext.unblock(reg2);
+			return instructions;
+		}
+		
+		@Override
+		public LittleType getType(CompilerContext compilerContext) {
+			return LittleType.INT;
+		}
+
+		@Override
+		public int getSize() {
+			return 1;
+		}
+	}
+	
 	public static class Getc implements Expression {
 
 		@Override
 		public List<Instruction> load(CompilerContext compilerContext, int register) {
 			return List.of(
-				new Instruction("AND R" + register + ", R" + register + ", #0"),	
 				new Instruction("GETC"),
+				new Instruction("AND R" + register + ", R" + register + ", #0"),	
 				new Instruction("ADD R" + register + ", R0, R" + register));
 		}
 		
@@ -554,7 +647,7 @@ public class LittleProgramParser {
 
 		@Override
 		public List<Instruction> emit(CompilerContext compilerContext) {
-			return List.of(new Instruction(name.toUpperCase() + " .BLKW " + (size + 1)));
+			return List.of(new Instruction(name.toUpperCase() + " .BLKW " + (size == 1 ? 1 : size + 1)));
 		}
 
 		public LittleType getType() {
@@ -641,9 +734,9 @@ public class LittleProgramParser {
 			Instruction labelStart = new Instruction(startLabel);
 			instructions.add(labelStart);
 			int register = compilerContext.getFirstUnblockedRegister();
-			compilerContext.unblock(register);
+			compilerContext.unblock (register);
 			instructions.addAll(expression.load(compilerContext, register));
-			Instruction branch = new Instruction("BRp " + endLabel);
+			Instruction branch = new Instruction("BRz " + endLabel);
 			instructions.add(branch);
 			
 			// BODY
@@ -678,8 +771,8 @@ public class LittleProgramParser {
 			List<Instruction> instructions = new ArrayList<>();
 			String endLabel = compilerContext.getNextLoop();
 			int register = compilerContext.getFirstUnblockedRegister();
-			compilerContext.unblock(register);
 			instructions.addAll(expression.load(compilerContext, register));
+			compilerContext.unblock(register);
 			Instruction branch = new Instruction("BRnz " + endLabel);
 			instructions.add(branch);
 			

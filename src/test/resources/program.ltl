@@ -1,0 +1,44 @@
+def a[8];
+def b[8];
+def c[8];
+def char;
+def x;
+def y;
+def output[4];
+copy "O#####<n>" -> a;
+copy "######<n>" -> b;
+copy "######<n>" -> c;
+x <- '0';
+y <- '0';
+char <- 0;
+
+print "Navigate using WASD - quit (q)<n>";
+print a;
+print b;	
+print c; 
+def running;
+running <- 1;
+loop running {
+	char <- getc();
+	if (char == 'w') {
+		y <- y - 1;
+	};
+	if (char == 's') {
+		y <- y + 1;
+	};
+	if (char == 'd') {
+		x <- x + 1;
+	};
+	if (char == 'a') {
+		x <- x - 1;
+	};
+	if (char == 'q') {
+		running <- 0;
+	};
+    output[0] <- x;
+    output[1] <- ',';
+    output[2] <- y;
+	print 10;
+	print output;
+	print 10;
+};

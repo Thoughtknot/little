@@ -1,6 +1,8 @@
 package org.aldous.little;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.aldous.little.LittleCompiler.Instruction;
@@ -134,7 +136,7 @@ public class LittleCompilerTest {
 			+ "b <- 12;\n"
 			+ "if a { print 'A'; };\n"
 			+ "if (b - 12) { print 'B'; };\n"
-			+ "print '\n'";
+			+ "print '\n';";
 		writeProgram(val, "comp10.obj");
 	}
 
@@ -159,6 +161,21 @@ public class LittleCompilerTest {
 			+ "copy \"Hello\" -> a;\n"
 			+ "print a;\n";
 		writeProgram(val, "comp13.obj");
+	}
+	
+	@Test
+	public void equalTest() throws IOException {
+		String val = "def a[6];\n"
+			+ "copy \"Hello\" -> a;\n"
+			+ "if a[0] == 'H' { print 'A'; };\n"
+			+ "if !(a[0] == 'H') { print 'B'; };\n";
+		writeProgram(val, "comp14.obj");
+	}
+	
+	@Test
+	public void wholeProgram() throws IOException {
+		String str = Files.readString(Paths.get("src/test/resources/program.ltl"));
+		writeProgram(str, "program.obj");
 	}
 	
 	private void writeProgram(String val, String path) throws IOException {

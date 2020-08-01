@@ -4,6 +4,7 @@ grammar Little;
 package org.aldous.little;
 }
 
+COMMENT: '#' ~('\n'|'\r')* -> skip;
 WS : [ \t\r\n]+ -> skip ; // skip spaces, tabs, newlines
 
 // literals
@@ -41,6 +42,7 @@ EQ: '=';
 LARROW: '<-';
 RARROW: '->';
 DOLLAR: '$';
+EXCL: '!';
 
 // ids
 VARIABLE_ID : [a-z][A-Za-z0-9]*;
@@ -65,10 +67,12 @@ expression: VARIABLE_ID # variableReference
    | left=expression SLASH right=expression #division
    | left=expression MINUS right=expression #subtraction
    | left=expression PLUS right=expression #addition
+   | left=expression EQ EQ right=expression #equals
    | INT_LIT #intLiteral
    | CHAR_LIT #charLiteral
    | STR_LIT #stringLiteral
    | LPAREN expression RPAREN # paren
    | VARIABLE_ID LSPAREN expression RSPAREN # arrayRef
    | GETC LPAREN RPAREN #getc
+   | EXCL expression #not
    ;
