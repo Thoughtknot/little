@@ -70,7 +70,7 @@ innerStatement:
         | STR sr=REGISTER COMMA br=REGISTER COMMA offset=INT_DEC_LIT #str
         | FILL val=(INT_DEC_LIT | INT_HEX_LIT) #fill
         | STRINGZ STR_LIT #stringz
-        | BLKW INT_LIT #blkw
+        | BLKW val=(INT_DEC_LIT | INT_HEX_LIT) #blkw
         | PUTS #puts
         | GETC #getc
         | OUT #out

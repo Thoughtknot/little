@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.aldous.little.LittleCompiler.Instruction;
 import org.aldous.little.assembler.Lc3Parser.AddContext;
 import org.aldous.little.assembler.Lc3Parser.AndContext;
 import org.aldous.little.assembler.Lc3Parser.BlkwContext;
@@ -45,30 +46,38 @@ import org.antlr.v4.runtime.Token;
 
 public class Lc3Assembler {
 
-	public void writeToFile(int[] assembled, String path) throws IOException {
+	public static void writeToFile(int[] assembled, String path) throws IOException {
 		FileOutputStream fos = new FileOutputStream(new File(path));
 		int lc = assembled[0];
 		for (int i = 0; i < assembled.length; i++) {
 			int current = assembled[i];
 			int a = (current >> 8) & 0xFF;
 			int b = current & 0xFF;
-			System.out.println(String.format("lc: %04X, %04X", lc & 0xFFFF, current & 0xFFFF));
+			//System.out.println(String.format("lc: %04X, %04X", lc & 0xFFFF, current & 0xFFFF));
 			fos.write(a);
 			fos.write(b);
 			lc++;
 		}
 		fos.close();
 	}
+
+	public static int[] assemble(List<Instruction> instructions) throws IOException {
+		final StringBuilder sb = new StringBuilder();
+		for (final Instruction i : instructions) {
+			sb.append(i.toString()).append('\n');
+		}
+		return assemble(sb.toString());
+	}
 	
 	@SuppressWarnings("deprecation")
-	public int[] assemble(String program) throws IOException {
+	public static int[] assemble(String program) throws IOException {
 		Lc3Lexer lc3l = new Lc3Lexer(new ANTLRInputStream(new ByteArrayInputStream(program.getBytes())));
 		Lc3Parser lc3p = new Lc3Parser(new CommonTokenStream(lc3l));
 		List<Statement> statements = lc3p
 			.file()
 			.statement()
 			.stream()
-			.map(this::parse)
+			.map(Lc3Assembler::parse)
 			.collect(Collectors.toList());
 		
 		Map<String, Integer> symbolTable = buildSymbolTable(statements);
@@ -76,7 +85,7 @@ public class Lc3Assembler {
 		return emitted;
 	}
 
-	private int[] emit(List<Statement> statements, Map<String, Integer> symbolTable) {
+	private static int[] emit(List<Statement> statements, Map<String, Integer> symbolTable) {
 		List<Integer> bytes = new ArrayList<>();
 		for (Statement statement: statements) {
 			bytes.addAll(statement.emit(symbolTable));
@@ -84,7 +93,7 @@ public class Lc3Assembler {
 		return bytes.stream().mapToInt(Integer::intValue).toArray();
 	}
 
-	private Map<String, Integer> buildSymbolTable(List<Statement> statements) {
+	private static Map<String, Integer> buildSymbolTable(List<Statement> statements) {
 		Map<String, Integer> symbolTable = new HashMap<>();
 		int lc = -1;
 		for (Statement statement : statements) {
@@ -99,7 +108,7 @@ public class Lc3Assembler {
 		return symbolTable;
 	}
 
-	public Statement parse(StatementContext ctxt) {
+	public static Statement parse(StatementContext ctxt) {
 		return new Statement(ctxt);
 	}
 	
@@ -179,7 +188,7 @@ public class Lc3Assembler {
 			else if (ctxt instanceof BlkwContext) {
 				BlkwContext blkw = (BlkwContext) ctxt;
 				List<Integer> ints = new ArrayList<>();
-				for (int i = 0; i < getInt(blkw.INT_LIT().getText()); i++) {
+				for (int i = 0; i < getInt(blkw.val.getText()); i++) {
 					ints.add(0);
 				}
 				return ints;
@@ -334,7 +343,7 @@ public class Lc3Assembler {
 		public int getOffset() {
 			if (ctxt instanceof BlkwContext) {
 				BlkwContext val = (BlkwContext) ctxt;
-				return getInt(val.INT_LIT().getText());
+				return getInt(val.val.getText());
 			}
 			else if (ctxt instanceof StringzContext) {
 				StringzContext val = (StringzContext) ctxt;

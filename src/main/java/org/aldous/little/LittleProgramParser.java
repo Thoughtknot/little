@@ -7,8 +7,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.aldous.little.LittleCompiler.CompilerContext;
+import org.aldous.little.LittleCompiler.ConditionFlag;
 import org.aldous.little.LittleCompiler.Instruction;
+import org.aldous.little.LittleCompiler.Register;
 import org.aldous.little.LittleParser.AdditionContext;
+import org.aldous.little.LittleParser.AndContext;
 import org.aldous.little.LittleParser.ArrayAssContext;
 import org.aldous.little.LittleParser.ArrayRefContext;
 import org.aldous.little.LittleParser.CharLiteralContext;
@@ -16,12 +19,14 @@ import org.aldous.little.LittleParser.CopyContext;
 import org.aldous.little.LittleParser.EqualsContext;
 import org.aldous.little.LittleParser.ExpressionContext;
 import org.aldous.little.LittleParser.GetcContext;
+import org.aldous.little.LittleParser.GreaterContext;
 import org.aldous.little.LittleParser.IfContext;
 import org.aldous.little.LittleParser.IntLiteralContext;
 import org.aldous.little.LittleParser.LineContext;
 import org.aldous.little.LittleParser.LoopContext;
 import org.aldous.little.LittleParser.MultiplicationContext;
 import org.aldous.little.LittleParser.NotContext;
+import org.aldous.little.LittleParser.OrContext;
 import org.aldous.little.LittleParser.ParenContext;
 import org.aldous.little.LittleParser.PrintContext;
 import org.aldous.little.LittleParser.StatementContext;
@@ -90,6 +95,18 @@ public class LittleProgramParser {
 		else if (exp instanceof EqualsContext) {
 			EqualsContext ctxt = (EqualsContext) exp;
 			return new Equal(parseExpression(ctxt.left), parseExpression(ctxt.right));
+		}
+		else if (exp instanceof GreaterContext) {
+			GreaterContext ctxt = (GreaterContext) exp;
+			return new Greater(parseExpression(ctxt.left), parseExpression(ctxt.right));
+		}
+		else if (exp instanceof AndContext) {
+			AndContext ctxt = (AndContext) exp;
+			return new And(parseExpression(ctxt.left), parseExpression(ctxt.right));
+		}
+		else if (exp instanceof OrContext) {
+			OrContext ctxt = (OrContext) exp;
+			return new Or(parseExpression(ctxt.left), parseExpression(ctxt.right));
 		}
 		else if (exp instanceof GetcContext) {
 			return new Getc();
@@ -163,7 +180,7 @@ public class LittleProgramParser {
 	}
 
 	public static interface Expression {
-		List<Instruction> load(CompilerContext compilerContext, int register);
+		List<Instruction> load(CompilerContext compilerContext, Register register);
 		LittleType getType(CompilerContext compilerContext);
 		int getSize();
 	}
@@ -182,19 +199,16 @@ public class LittleProgramParser {
 		}
 
 		@Override
-		public List<Instruction> load(CompilerContext compilerContext, int register) {
+		public List<Instruction> load(CompilerContext compilerContext, Register register) {
 			List<Instruction> instructions = new ArrayList<>();
-			int reg1 = compilerContext.getFirstUnblockedRegister();
-			instructions.add(new Instruction("LEA R" + reg1 + ", " + name.toUpperCase()));
-			int reg2 = compilerContext.getFirstUnblockedRegister();
+			Register reg1 = compilerContext.getFirstUnblockedRegister();
+			instructions.add(Instruction.LEA(reg1, name.toUpperCase()));
+			Register reg2 = compilerContext.getFirstUnblockedRegister();
 			instructions.addAll(index.load(compilerContext, reg2));
-			instructions.add(new Instruction("ADD R" + reg1 + ", R" + reg2 + ", R" + reg1));
+			instructions.add(Instruction.ADD(reg1, reg2, reg1));
 			compilerContext.unblock(reg2);
 			
-			// load the value into register, name[index].
-			Instruction ins = new Instruction("LDR R" + register + ", R" + reg1 + ", #0"); 
-			instructions.add(ins);
-			
+			instructions.add(Instruction.LDR(register, reg1, 0));
 			compilerContext.unblock(reg1);
 			return instructions;
 		}
@@ -218,12 +232,12 @@ public class LittleProgramParser {
 		}
 
 		@Override
-		public List<Instruction> load(CompilerContext compilerContext, int register) {
+		public List<Instruction> load(CompilerContext compilerContext, Register register) {
 			if (getType(compilerContext) == LittleType.INT) {
-				return List.of(new Instruction("LD R" + register + ", " + name.toUpperCase()));
+				return List.of(Instruction.LD(register, name.toUpperCase()));
 			}
 			else {
-				return List.of(new Instruction("LEA R" + register + ", " + name.toUpperCase()));
+				return List.of(Instruction.LEA(register, name.toUpperCase()));
 			}
 		}
 
@@ -248,40 +262,41 @@ public class LittleProgramParser {
 		}
 
 		@Override
-		public List<Instruction> load(CompilerContext compilerContext, int register) {
+		public List<Instruction> load(CompilerContext compilerContext, Register register) {
 			List<Instruction> ins = new ArrayList<>();
-			int reg1 = compilerContext.getFirstUnblockedRegister();
-			int reg2 = compilerContext.getFirstUnblockedRegister();
+			Register reg1 = compilerContext.getFirstUnblockedRegister();
+			Register reg2 = compilerContext.getFirstUnblockedRegister();
 			List<Instruction> leftIns = left.load(compilerContext, reg1);
 			List<Instruction> rightIns = right.load(compilerContext, reg2);
 			
 			ins.addAll(leftIns);
 			ins.addAll(rightIns);
 
-			int regIndex = compilerContext.getFirstUnblockedRegister();
+			Register regIndex = compilerContext.getFirstUnblockedRegister();
 			String startLabel = compilerContext.getNextLoop();
 			String endLabel = compilerContext.getNextLoop();
-			ins.add(new Instruction("AND R" + regIndex + ", R" + regIndex + ", #0")); // set index to 0
-			ins.add(new Instruction("AND R" + register + ", R" + register + ", #0")); // set dr to 0
+			ins.add(Instruction.ANDI(regIndex, regIndex, 0));
+			ins.add(Instruction.ANDI(register, register, 0));
 
-			int regComparison = compilerContext.getFirstUnblockedRegister();
+			Register regComparison = compilerContext.getFirstUnblockedRegister();
 			
 			// Comparison: take regIndex - reg2 to see if we've added reg1, reg2 times
-			ins.add(new Instruction(startLabel + " NOT R" + regComparison + ", R" + reg2));
-			ins.add(new Instruction("ADD R" + regComparison + ", R" + regComparison + ", #1"));
-			ins.add(new Instruction("ADD R" + regComparison + ", R" + regComparison + ", R" + regIndex));
-			ins.add(new Instruction("BRzp " + endLabel));
+			ins.add(Instruction.Label(startLabel));
+			ins.add(Instruction.NOT(regComparison, reg2));
+			ins.add(Instruction.ADDI(regComparison, regComparison, 1));
+			ins.add(Instruction.ADD(regComparison, regComparison, regIndex));
+			ins.add(Instruction.BR(endLabel, ConditionFlag.Z, ConditionFlag.P));
 			
 			// Body
-			ins.add(new Instruction("ADD R" + register + ", R" + reg1 + ", R" + register)); 
+			ins.add(Instruction.ADD(register, reg1, register));
 			
 			// increment index
-			ins.add(new Instruction("ADD R" + regIndex + ", R" + regIndex + ", #1")); 
+			ins.add(Instruction.ADDI(regIndex, regIndex, 1));
 			
 			// got to loop start
-			ins.add(new Instruction("BR " + startLabel));
+			ins.add(Instruction.BR(startLabel));
 
-			ins.add(new Instruction(endLabel));
+			ins.add(Instruction.Label(endLabel));
 			compilerContext.unblock(reg1);
 			compilerContext.unblock(reg2);
 			compilerContext.unblock(regIndex);
@@ -310,18 +325,18 @@ public class LittleProgramParser {
 		}
 
 		@Override
-		public List<Instruction> load(CompilerContext compilerContext, int register) {
+		public List<Instruction> load(CompilerContext compilerContext, Register register) {
 			List<Instruction> ins = new ArrayList<>();
-			int reg1 = compilerContext.getFirstUnblockedRegister();
-			int reg2 = compilerContext.getFirstUnblockedRegister();
+			Register reg1 = compilerContext.getFirstUnblockedRegister();
+			Register reg2 = compilerContext.getFirstUnblockedRegister();
 			List<Instruction> leftIns = left.load(compilerContext, reg1);
 			List<Instruction> rightIns = right.load(compilerContext, reg2);
 			
 			ins.addAll(leftIns);
 			ins.addAll(rightIns);
-			ins.add(new Instruction("NOT R" + reg2 + ", R" + reg2));
-			ins.add(new Instruction("ADD R" + reg2 + ", R" + reg2 + ", #1"));
-			ins.add(new Instruction("ADD R" + register + ", R" + reg1 + ", R" + reg2));
+			ins.add(Instruction.NOT(reg2, reg2));
+			ins.add(Instruction.ADDI(reg2,  reg2, 1));
+			ins.add(Instruction.ADD(register,  reg1, reg2));
 			
 			compilerContext.unblock(reg1);
 			compilerContext.unblock(reg2);
@@ -349,16 +364,16 @@ public class LittleProgramParser {
 		}
 
 		@Override
-		public List<Instruction> load(CompilerContext compilerContext, int register) {
+		public List<Instruction> load(CompilerContext compilerContext, Register register) {
 			List<Instruction> ins = new ArrayList<>();
-			int reg1 = compilerContext.getFirstUnblockedRegister();
-			int reg2 = compilerContext.getFirstUnblockedRegister();
+			Register reg1 = compilerContext.getFirstUnblockedRegister();
+			Register reg2 = compilerContext.getFirstUnblockedRegister();
 			List<Instruction> leftIns = left.load(compilerContext, reg1);
 			List<Instruction> rightIns = right.load(compilerContext, reg2);
 			
 			ins.addAll(leftIns);
 			ins.addAll(rightIns);
-			ins.add(new Instruction("ADD R" + register + ", R" + reg1 + ", R" + reg2));
+			ins.add(Instruction.ADD(register,  reg1, reg2));
 			
 			compilerContext.unblock(reg1);
 			compilerContext.unblock(reg2);
@@ -384,7 +399,7 @@ public class LittleProgramParser {
 		}
 
 		@Override
-		public List<Instruction> load(CompilerContext compilerContext, int register) {
+		public List<Instruction> load(CompilerContext compilerContext, Register register) {
 			List<Instruction> instructions = new ArrayList<>();
 			StringBuilder labelSb = new StringBuilder();
 			for (int i = 0; i < value.length(); i++) {
@@ -398,11 +413,10 @@ public class LittleProgramParser {
 			String label = labelSb.toString().toUpperCase() ;
 			if (!compilerContext.hasConstant(label)) {
 				compilerContext.setConstant(label);
-				Instruction a = new Instruction(label + " .STRINGZ " + value);
-				instructions.add(a);
+				instructions.add(Instruction.Label(label));
+				instructions.add(Instruction.STRINGZ(value));
 			}
-			Instruction b = new Instruction("LEA R" + register + ", " + label);
-			instructions.add(b);
+			instructions.add(Instruction.LEA(register, label));
 			return instructions;
 		}
 		
@@ -429,16 +443,15 @@ public class LittleProgramParser {
 		}
 
 		@Override
-		public List<Instruction> load(CompilerContext compilerContext, int register) {
+		public List<Instruction> load(CompilerContext compilerContext, Register register) {
 			List<Instruction> instructions = new ArrayList<>();
 			if (!compilerContext.hasConstant(value)) {
 				String label = compilerContext.setConstant(value);
-				Instruction a = new Instruction(label + " .FILL #" + value);
-				instructions.add(a);
+				instructions.add(Instruction.Label(label));
+				instructions.add(Instruction.FILL(value));
 			}
 			String label = compilerContext.getConstant(value);
-			Instruction b = new Instruction("LD R" + register + ", " + label);
-			instructions.add(b);
+			instructions.add(Instruction.LD(register, label));
 			return instructions;
 		}
 		
@@ -461,19 +474,23 @@ public class LittleProgramParser {
 		}
 
 		@Override
-		public List<Instruction> load(CompilerContext compilerContext, int register) {
+		public List<Instruction> load(CompilerContext compilerContext, Register register) {
 			List<Instruction> instructions = new ArrayList<>();
-			compilerContext.blockRegister(0);
-			instructions.addAll(exp.load(compilerContext, 0));
+			Register reg0 = Register.R0;
+			Register reg1 = compilerContext.getFirstUnblockedRegister();
+			instructions.addAll(exp.load(compilerContext, reg1));
+			instructions.add(Instruction.ANDI(reg0, reg0, 0));
+			instructions.add(Instruction.ADDI(reg0, reg1, 0));
+			
 			String endLabel = compilerContext.getNextLoop();
 			String finalLabel = compilerContext.getNextLoop();
-			instructions.add(new Instruction("BRp " + endLabel));
-			instructions.add(new Instruction("ADD R" + register + ", R" + register + ", #1"));
-			instructions.add(new Instruction("BR " + finalLabel));
-			instructions.add(new Instruction(endLabel));
-			instructions.add(new Instruction("AND R" + register + ", R" + register + ", #0"));
-			instructions.add(new Instruction(finalLabel));
-			compilerContext.unblock(0);
+			instructions.add(Instruction.BR(endLabel, ConditionFlag.P));
+			instructions.add(Instruction.ADDI(register, register, 1));
+			instructions.add(Instruction.BR(finalLabel));
+			instructions.add(Instruction.Label(endLabel));
+			instructions.add(Instruction.ANDI(register, register, 0));
+			instructions.add(Instruction.Label(finalLabel));
+			compilerContext.unblock(reg1);
 			return instructions;
 		}
 		
@@ -498,31 +515,181 @@ public class LittleProgramParser {
 		}
 
 		@Override
-		public List<Instruction> load(CompilerContext compilerContext, int register) {
+		public List<Instruction> load(CompilerContext compilerContext, Register register) {
 			List<Instruction> instructions = new ArrayList<>();
 			
-			int reg1 = compilerContext.getFirstUnblockedRegister();
-			int reg2 = compilerContext.getFirstUnblockedRegister();
+			compilerContext.blockRegister(Register.R0);
+			Register reg1 = compilerContext.getFirstUnblockedRegister();
+			Register reg2 = compilerContext.getFirstUnblockedRegister();
 			instructions.addAll(left.load(compilerContext, reg1));
 			instructions.addAll(right.load(compilerContext, reg2));
-			instructions.add(new Instruction("AND R0, R0, #0"));
-			instructions.add(new Instruction("AND R" + register + ", R" + register + ", #0"));
+			instructions.add(Instruction.ANDI(Register.R0, Register.R0, 0));
+			instructions.add(Instruction.ANDI(register, register, 0));
 			
-			instructions.add(new Instruction("NOT R" + reg2 + ", R" + reg2));
-			instructions.add(new Instruction("ADD R" + reg2 + ", R" + reg2 + ", #1"));
-			instructions.add(new Instruction("ADD R" + 0 + ", R" + reg2 + ", R" + reg1));
+			instructions.add(Instruction.NOT(reg2, reg2));
+			instructions.add(Instruction.ADDI(reg2, reg2, 1));
+			instructions.add(Instruction.ADD(Register.R0, reg2, reg1));
 			
 			String endLabel = compilerContext.getNextLoop();
 			String finalLabel = compilerContext.getNextLoop();
-			instructions.add(new Instruction("BRnp " + endLabel));
-			instructions.add(new Instruction("ADD R" + register + ", R" + register + ", #1"));
-			instructions.add(new Instruction("BR " + finalLabel));
-			instructions.add(new Instruction(endLabel));
-			instructions.add(new Instruction("ADD R" + register + ", R" + register + ", #0"));
-			instructions.add(new Instruction(finalLabel));
+			instructions.add(Instruction.BR(endLabel, ConditionFlag.N, ConditionFlag.P));
+			instructions.add(Instruction.ADDI(register, register, 1));
+			instructions.add(Instruction.BR(finalLabel));
+			instructions.add(Instruction.Label(endLabel));
+			instructions.add(Instruction.ADDI(register, register, 0));
+			instructions.add(Instruction.Label(finalLabel));
 			
 			compilerContext.unblock(reg1);
 			compilerContext.unblock(reg2);
+			compilerContext.unblock(Register.R0);
+			return instructions;
+		}
+		
+		@Override
+		public LittleType getType(CompilerContext compilerContext) {
+			return LittleType.INT;
+		}
+
+		@Override
+		public int getSize() {
+			return 1;
+		}
+	}
+	
+	public static class Greater implements Expression {
+		private final Expression left;
+		private final Expression right;
+
+		public Greater(Expression left, Expression right) {
+			this.left = left;
+			this.right = right;
+		}
+
+		@Override
+		public List<Instruction> load(CompilerContext compilerContext, Register register) {
+			List<Instruction> instructions = new ArrayList<>();
+			
+			Register reg1 = compilerContext.getFirstUnblockedRegister();
+			Register reg2 = compilerContext.getFirstUnblockedRegister();
+			instructions.addAll(left.load(compilerContext, reg1));
+			instructions.addAll(right.load(compilerContext, reg2));
+			instructions.add(Instruction.ANDI(Register.R0, Register.R0, 0));
+			instructions.add(Instruction.ANDI(register, register, 0));
+			
+			instructions.add(Instruction.NOT(reg2, reg2));
+			instructions.add(Instruction.ADDI(reg2, reg2, 1));
+			instructions.add(Instruction.ADD(Register.R0, reg2, reg1));
+			
+			String endLabel = compilerContext.getNextLoop();
+			String finalLabel = compilerContext.getNextLoop();
+			instructions.add(Instruction.BR(endLabel, ConditionFlag.N, ConditionFlag.Z));
+			instructions.add(Instruction.ADDI(register, register, 1));
+			instructions.add(Instruction.BR(finalLabel));
+			instructions.add(Instruction.Label(endLabel));
+			instructions.add(Instruction.ADDI(register, register, 0));
+			instructions.add(Instruction.Label(finalLabel));
+			
+			compilerContext.unblock(reg1);
+			compilerContext.unblock(reg2);
+			compilerContext.unblock(Register.R0);
+			return instructions;
+		}
+		
+		@Override
+		public LittleType getType(CompilerContext compilerContext) {
+			return LittleType.INT;
+		}
+
+		@Override
+		public int getSize() {
+			return 1;
+		}
+	}
+	
+	public static class And implements Expression {
+		private final Expression left;
+		private final Expression right;
+
+		public And(Expression left, Expression right) {
+			this.left = left;
+			this.right = right;
+		}
+
+		@Override
+		public List<Instruction> load(CompilerContext compilerContext, Register register) {
+			List<Instruction> instructions = new ArrayList<>();
+			
+			compilerContext.blockRegister(Register.R0);
+			Register reg1 = compilerContext.getFirstUnblockedRegister();
+			Register reg2 = compilerContext.getFirstUnblockedRegister();
+			String endLabel = compilerContext.getNextLoop();
+			String finalLabel = compilerContext.getNextLoop();
+			
+			instructions.add(Instruction.ANDI(Register.R0, Register.R0, 0));
+			instructions.addAll(left.load(compilerContext, reg1));
+			instructions.add(Instruction.BR(endLabel, ConditionFlag.N, ConditionFlag.Z));
+			instructions.addAll(right.load(compilerContext, reg2));
+			instructions.add(Instruction.BR(endLabel, ConditionFlag.N, ConditionFlag.Z));
+			
+			instructions.add(Instruction.ADDI(register, register, 1));
+			instructions.add(Instruction.BR(finalLabel));
+			instructions.add(Instruction.Label(endLabel));
+			instructions.add(Instruction.ADDI(register, register, 0));
+			instructions.add(Instruction.Label(finalLabel));
+			
+			compilerContext.unblock(reg1);
+			compilerContext.unblock(reg2);
+			compilerContext.unblock(Register.R0);
+			return instructions;
+		}
+		
+		@Override
+		public LittleType getType(CompilerContext compilerContext) {
+			return LittleType.INT;
+		}
+
+		@Override
+		public int getSize() {
+			return 1;
+		}
+	}
+
+	public static class Or implements Expression {
+		private final Expression left;
+		private final Expression right;
+
+		public Or(Expression left, Expression right) {
+			this.left = left;
+			this.right = right;
+		}
+
+		@Override
+		public List<Instruction> load(CompilerContext compilerContext, Register register) {
+			List<Instruction> instructions = new ArrayList<>();
+			
+			compilerContext.blockRegister(Register.R0);
+			Register reg1 = compilerContext.getFirstUnblockedRegister();
+			Register reg2 = compilerContext.getFirstUnblockedRegister();
+			String startLabel = compilerContext.getNextLoop();
+			String endLabel = compilerContext.getNextLoop();
+			String finalLabel = compilerContext.getNextLoop();
+			
+			instructions.add(Instruction.ANDI(Register.R0, Register.R0, 0));
+			instructions.addAll(left.load(compilerContext, reg1));
+			instructions.add(Instruction.BR(startLabel, ConditionFlag.P));
+			instructions.addAll(right.load(compilerContext, reg2));
+			instructions.add(Instruction.BR(endLabel, ConditionFlag.N, ConditionFlag.Z));
+
+			instructions.add(Instruction.Label(startLabel));
+			instructions.add(Instruction.ADDI(register, register, 1));
+			instructions.add(Instruction.BR(finalLabel));
+			instructions.add(Instruction.Label(endLabel));
+			instructions.add(Instruction.ADDI(register, register, 0));
+			instructions.add(Instruction.Label(finalLabel));
+			
+			compilerContext.unblock(reg1);
+			compilerContext.unblock(reg2);
+			compilerContext.unblock(Register.R0);
 			return instructions;
 		}
 		
@@ -540,11 +707,11 @@ public class LittleProgramParser {
 	public static class Getc implements Expression {
 
 		@Override
-		public List<Instruction> load(CompilerContext compilerContext, int register) {
+		public List<Instruction> load(CompilerContext compilerContext, Register register) {
 			return List.of(
-				new Instruction("GETC"),
-				new Instruction("AND R" + register + ", R" + register + ", #0"),	
-				new Instruction("ADD R" + register + ", R0, R" + register));
+				Instruction.GETC(),
+				Instruction.ANDI(register, register, 0),
+				Instruction.ADD(register, Register.R0, register)); 
 		}
 		
 		@Override
@@ -568,15 +735,15 @@ public class LittleProgramParser {
 		@Override
 		public List<Instruction> emit(CompilerContext compilerContext) {
 			List<Instruction> instructions = new ArrayList<>();
-			int register = 0;
+			Register register = Register.R0;
 			compilerContext.blockRegister(register);
 			instructions.addAll(expression.load(compilerContext, register));
 			compilerContext.unblock(register);
 			if (expression.getType(compilerContext) == LittleType.ARRAY) {
-				instructions.add(new Instruction("PUTS"));
+				instructions.add(Instruction.PUTS());
 			}
 			else {
-				instructions.add(new Instruction("OUT"));
+				instructions.add(Instruction.OUT());
 			}
 			return instructions;
 		}
@@ -596,17 +763,16 @@ public class LittleProgramParser {
 		@Override
 		public List<Instruction> emit(CompilerContext compilerContext) {
 			List<Instruction> instructions = new ArrayList<>();
-			int reg1 = compilerContext.getFirstUnblockedRegister();
-			instructions.add(new Instruction("LEA R" + reg1 + ", " + name.toUpperCase()));
-			int reg2 = compilerContext.getFirstUnblockedRegister();
+			Register reg1 = compilerContext.getFirstUnblockedRegister();
+			instructions.add(Instruction.LEA(reg1, name.toUpperCase()));
+			Register reg2 = compilerContext.getFirstUnblockedRegister();
 			instructions.addAll(index.load(compilerContext, reg2));
-			instructions.add(new Instruction("ADD R" + reg1 + ", R" + reg2 + ", R" + reg1));
+			instructions.add(Instruction.ADD(reg1, reg2, reg1));
 			compilerContext.unblock(reg2);
 			
-			int register = compilerContext.getFirstUnblockedRegister();
+			Register register = compilerContext.getFirstUnblockedRegister();
 			instructions.addAll(exp.load(compilerContext, register));
-			Instruction ins = new Instruction("STR R" + register + ", R" + reg1 + ", #0");
-			instructions.add(ins);
+			instructions.add(Instruction.STR(register, reg1, 0));
 			
 			compilerContext.unblock(reg1);
 			compilerContext.unblock(register);
@@ -626,11 +792,10 @@ public class LittleProgramParser {
 		@Override
 		public List<Instruction> emit(CompilerContext compilerContext) {
 			List<Instruction> instructions = new ArrayList<>();
-			int register = compilerContext.getFirstUnblockedRegister();
+			Register register = compilerContext.getFirstUnblockedRegister();
 			
 			instructions.addAll(exp.load(compilerContext, register));
-			Instruction ins = new Instruction("ST R" + register + ", " + name.toUpperCase());
-			instructions.add(ins);
+			instructions.add(Instruction.ST(register, name.toUpperCase()));
 			compilerContext.unblock(register);
 			return instructions;
 		}
@@ -647,7 +812,8 @@ public class LittleProgramParser {
 
 		@Override
 		public List<Instruction> emit(CompilerContext compilerContext) {
-			return List.of(new Instruction(name.toUpperCase() + " .BLKW " + (size == 1 ? 1 : size + 1)));
+			return List.of(Instruction.Label(name.toUpperCase()),
+					Instruction.BLKW((size == 1 ? 1 : size + 1)));
 		}
 
 		public LittleType getType() {
@@ -670,41 +836,39 @@ public class LittleProgramParser {
 			List<Instruction> instructions = new ArrayList<>();
 			String startLabel = compilerContext.getNextLoop();
 			String endLabel = compilerContext.getNextLoop();
-			Instruction labelStart = new Instruction(startLabel);
-			int reg0 = compilerContext.getFirstUnblockedRegister();
-			int reg1 = compilerContext.getFirstUnblockedRegister();
-			int reg2 = compilerContext.getFirstUnblockedRegister();
-			int reg3 = compilerContext.getFirstUnblockedRegister();
-			int reg4 = compilerContext.getFirstUnblockedRegister();
-			int reg5 = compilerContext.getFirstUnblockedRegister();
+			Register reg0 = compilerContext.getFirstUnblockedRegister();
+			Register reg1 = compilerContext.getFirstUnblockedRegister();
+			Register reg2 = compilerContext.getFirstUnblockedRegister();
+			Register reg3 = compilerContext.getFirstUnblockedRegister();
+			Register reg4 = compilerContext.getFirstUnblockedRegister();
+			Register reg5 = compilerContext.getFirstUnblockedRegister();
 
-			instructions.add(new Instruction("LEA R" + reg5 + ", " + name.toUpperCase()));
-			instructions.add(new Instruction("AND R" + reg0 + ", R" + reg0 + ", #0"));
-			instructions.add(new Instruction("AND R" + reg1 + ", R" + reg1 + ", #0"));
-			instructions.add(new Instruction("ADD R" + reg1 + ", R" + reg1 + ", #" + size));
-			instructions.add(new Instruction("NOT R" + reg1 + ", R" + reg1));
-			instructions.add(new Instruction("ADD R" + reg1 + ", R" + reg1 + ", #1"));
+			instructions.add(Instruction.LEA(reg5, name.toUpperCase()));
+			instructions.add(Instruction.ANDI(reg0, reg0, 0));
+			instructions.add(Instruction.ANDI(reg1, reg1, 0));
+			instructions.add(Instruction.ADDI(reg1, reg1, size));
+			instructions.add(Instruction.NOT(reg1, reg1));
+			instructions.add(Instruction.ADDI(reg1, reg1, 1));
 			instructions.addAll(exp.load(compilerContext, reg3));
-			instructions.add(labelStart);
+			instructions.add(Instruction.Label(startLabel));
 			
-			instructions.add(new Instruction("ADD R" + reg2 + ", R" + reg1 + ", R" + reg0));
-			instructions.add(new Instruction("BRp " + endLabel));
+			instructions.add(Instruction.ADD(reg2,  reg1, reg0));
+			instructions.add(Instruction.BR(endLabel, ConditionFlag.P));
 			
 			// BODY - load the actual value currently pointed to - store it in the label + index
-			instructions.add(new Instruction("LDR R" + reg4 + ", R" + reg3 + ", #0"));
-			instructions.add(new Instruction("STR R" + reg4 + ", R" + reg5 + ", #0"));
+			instructions.add(Instruction.LDR(reg4, reg3, 0));
+			instructions.add(Instruction.STR(reg4, reg5, 0));
 			
 			//incr pointer
-			instructions.add(new Instruction("ADD R" + reg3 + ", R" + reg3 + ", #1")); 
-			instructions.add(new Instruction("ADD R" + reg5 + ", R" + reg5 + ", #1")); 
+			instructions.add(Instruction.ADDI(reg3, reg3, 1));
+			instructions.add(Instruction.ADDI(reg5, reg5, 1));
+			
 			//incr index
-			instructions.add(new Instruction("ADD R" + reg0 + ", R" + reg0 + ", #1"));
+			instructions.add(Instruction.ADDI(reg0, reg0, 1));
 			
 			//end
-			Instruction jumpToStart = new Instruction("BR " + startLabel);
-			instructions.add(jumpToStart);
-			Instruction labelEnd = new Instruction(endLabel);
-			instructions.add(labelEnd);
+			instructions.add(Instruction.BR(startLabel));
+			instructions.add(Instruction.Label(endLabel));
 			
 			compilerContext.unblock(reg0);
 			compilerContext.unblock(reg1);
@@ -731,13 +895,12 @@ public class LittleProgramParser {
 			List<Instruction> instructions = new ArrayList<>();
 			String startLabel = compilerContext.getNextLoop();
 			String endLabel = compilerContext.getNextLoop();
-			Instruction labelStart = new Instruction(startLabel);
-			instructions.add(labelStart);
-			int register = compilerContext.getFirstUnblockedRegister();
-			compilerContext.unblock (register);
+			
+			instructions.add(Instruction.Label(startLabel));
+			Register register = compilerContext.getFirstUnblockedRegister();
+			compilerContext.unblock(register);
 			instructions.addAll(expression.load(compilerContext, register));
-			Instruction branch = new Instruction("BRz " + endLabel);
-			instructions.add(branch);
+			instructions.add(Instruction.BR(endLabel, ConditionFlag.Z));
 			
 			// BODY
 			for (Statement s : statements) {
@@ -745,10 +908,8 @@ public class LittleProgramParser {
 			}
 			// 
 			
-			Instruction jumpToStart = new Instruction("BR " + startLabel);
-			instructions.add(jumpToStart);
-			Instruction labelEnd = new Instruction(endLabel);
-			instructions.add(labelEnd);
+			instructions.add(Instruction.BR(startLabel));
+			instructions.add(Instruction.Label(endLabel));
 			return instructions;
 		}
 
@@ -770,19 +931,17 @@ public class LittleProgramParser {
 		public List<Instruction> emit(CompilerContext compilerContext) {
 			List<Instruction> instructions = new ArrayList<>();
 			String endLabel = compilerContext.getNextLoop();
-			int register = compilerContext.getFirstUnblockedRegister();
+			Register register = compilerContext.getFirstUnblockedRegister();
 			instructions.addAll(expression.load(compilerContext, register));
 			compilerContext.unblock(register);
-			Instruction branch = new Instruction("BRnz " + endLabel);
-			instructions.add(branch);
+			instructions.add(Instruction.BR(endLabel, ConditionFlag.N, ConditionFlag.Z));
 			
 			// BODY
 			for (Statement s : statements) {
 				instructions.addAll(s.emit(compilerContext));
 			}
 			
-			Instruction labelEnd = new Instruction(endLabel);
-			instructions.add(labelEnd);
+			instructions.add(Instruction.Label(endLabel));
 			return instructions;
 		}
 

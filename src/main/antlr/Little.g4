@@ -43,10 +43,12 @@ LARROW: '<-';
 RARROW: '->';
 DOLLAR: '$';
 EXCL: '!';
+GT: '>';
+AMP: '&';
+VBAR: '|';
 
 // ids
 VARIABLE_ID : [a-z][A-Za-z0-9]*;
-
 
 file: line+;
 line: statement SEMIC;
@@ -68,6 +70,9 @@ expression: VARIABLE_ID # variableReference
    | left=expression MINUS right=expression #subtraction
    | left=expression PLUS right=expression #addition
    | left=expression EQ EQ right=expression #equals
+   | left=expression GT right=expression #greater
+   | left=expression AMP AMP right=expression #and
+   | left=expression VBAR VBAR right=expression #or
    | INT_LIT #intLiteral
    | CHAR_LIT #charLiteral
    | STR_LIT #stringLiteral

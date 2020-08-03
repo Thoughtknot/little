@@ -25,11 +25,17 @@ public class LittleCompilerTest {
 		writeProgram(val, "comp1.obj");
 	}
 
-	
+	@Test
+	public void empty() throws IOException {
+		String val = "";
+
+		writeProgram(val, "comp0.obj");
+	}
+
 	@Test
 	public void compilerString() throws IOException {
 		String val = "def hello[12];\n"
-				+ "hello <- \"Hello world!\";\n"
+				+ "copy \"Hello world!\" -> hello;\n"
 				+ "print hello;\n";
 
 		writeProgram(val, "comp2.obj");
@@ -170,6 +176,16 @@ public class LittleCompilerTest {
 			+ "if a[0] == 'H' { print 'A'; };\n"
 			+ "if !(a[0] == 'H') { print 'B'; };\n";
 		writeProgram(val, "comp14.obj");
+	}
+
+	@Test
+	public void conditionalsTest() throws IOException {
+		String val = "def a[6];\n"
+			+ "copy \"Hello\" -> a;\n"
+			+ "if a[1] > 'b' { print a[0]; };\n"
+			+ "if a[1] > 'b' && 'o' == a[4] { print a[2]; };\n"
+			+ "if !(5 > 6) { print 'B'; };\n";
+		writeProgram(val, "comp15.obj");
 	}
 	
 	@Test

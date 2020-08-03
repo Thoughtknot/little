@@ -138,6 +138,18 @@ public class LittleBaseListener implements LittleListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterOr(LittleParser.OrContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitOr(LittleParser.OrContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterVariableReference(LittleParser.VariableReferenceContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -246,6 +258,18 @@ public class LittleBaseListener implements LittleListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterAnd(LittleParser.AndContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitAnd(LittleParser.AndContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterEquals(LittleParser.EqualsContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -277,6 +301,18 @@ public class LittleBaseListener implements LittleListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitGetc(LittleParser.GetcContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterGreater(LittleParser.GreaterContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitGreater(LittleParser.GreaterContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

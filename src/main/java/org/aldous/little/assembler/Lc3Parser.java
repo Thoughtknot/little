@@ -1,4 +1,4 @@
-// Generated from Lc3.g4 by ANTLR 4.7.1
+// Generated from Lc3.g4 by ANTLR 4.7.2
 
 package org.aldous.little.assembler;
 
@@ -13,7 +13,7 @@ import java.util.ArrayList;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
 public class Lc3Parser extends Parser {
-	static { RuntimeMetaData.checkVersion("4.7.1", RuntimeMetaData.VERSION); }
+	static { RuntimeMetaData.checkVersion("4.7.2", RuntimeMetaData.VERSION); }
 
 	protected static final DFA[] _decisionToDFA;
 	protected static final PredictionContextCache _sharedContextCache =
@@ -26,24 +26,33 @@ public class Lc3Parser extends Parser {
 		REGISTER=35, COMMA=36, LABEL=37;
 	public static final int
 		RULE_file = 0, RULE_statement = 1, RULE_innerStatement = 2;
-	public static final String[] ruleNames = {
-		"file", "statement", "innerStatement"
-	};
+	private static String[] makeRuleNames() {
+		return new String[] {
+			"file", "statement", "innerStatement"
+		};
+	}
+	public static final String[] ruleNames = makeRuleNames();
 
-	private static final String[] _LITERAL_NAMES = {
-		null, "'n'", "'z'", "'p'", "'\n'", null, null, null, null, null, "'.ORIG'", 
-		"'.END'", "'.FILL'", "'.BLKW'", "'.STRINGZ'", "'BR'", "'LDI'", "'LD'", 
-		"'LDR'", "'LEA'", "'STI'", "'STR'", "'ST'", "'JMP'", "'JSR'", "'JSRR'", 
-		"'RET'", "'ADD'", "'AND'", "'NOT'", "'HALT'", "'IN'", "'OUT'", "'GETC'", 
-		"'PUTS'", null, "','"
-	};
-	private static final String[] _SYMBOLIC_NAMES = {
-		null, null, null, null, "NEWLINE", "WS", "INT_LIT", "INT_DEC_LIT", "INT_HEX_LIT", 
-		"STR_LIT", "ORIG", "END", "FILL", "BLKW", "STRINGZ", "BR", "LDI", "LD", 
-		"LDR", "LEA", "STI", "STR", "ST", "JMP", "JSR", "JSRR", "RET", "ADD", 
-		"AND", "NOT", "HALT", "IN", "OUT", "GETC", "PUTS", "REGISTER", "COMMA", 
-		"LABEL"
-	};
+	private static String[] makeLiteralNames() {
+		return new String[] {
+			null, "'n'", "'z'", "'p'", "'\n'", null, null, null, null, null, "'.ORIG'", 
+			"'.END'", "'.FILL'", "'.BLKW'", "'.STRINGZ'", "'BR'", "'LDI'", "'LD'", 
+			"'LDR'", "'LEA'", "'STI'", "'STR'", "'ST'", "'JMP'", "'JSR'", "'JSRR'", 
+			"'RET'", "'ADD'", "'AND'", "'NOT'", "'HALT'", "'IN'", "'OUT'", "'GETC'", 
+			"'PUTS'", null, "','"
+		};
+	}
+	private static final String[] _LITERAL_NAMES = makeLiteralNames();
+	private static String[] makeSymbolicNames() {
+		return new String[] {
+			null, null, null, null, "NEWLINE", "WS", "INT_LIT", "INT_DEC_LIT", "INT_HEX_LIT", 
+			"STR_LIT", "ORIG", "END", "FILL", "BLKW", "STRINGZ", "BR", "LDI", "LD", 
+			"LDR", "LEA", "STI", "STR", "ST", "JMP", "JSR", "JSRR", "RET", "ADD", 
+			"AND", "NOT", "HALT", "IN", "OUT", "GETC", "PUTS", "REGISTER", "COMMA", 
+			"LABEL"
+		};
+	}
+	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
 	public static final Vocabulary VOCABULARY = new VocabularyImpl(_LITERAL_NAMES, _SYMBOLIC_NAMES);
 
 	/**
@@ -332,8 +341,10 @@ public class Lc3Parser extends Parser {
 		}
 	}
 	public static class BlkwContext extends InnerStatementContext {
+		public Token val;
 		public TerminalNode BLKW() { return getToken(Lc3Parser.BLKW, 0); }
-		public TerminalNode INT_LIT() { return getToken(Lc3Parser.INT_LIT, 0); }
+		public TerminalNode INT_DEC_LIT() { return getToken(Lc3Parser.INT_DEC_LIT, 0); }
+		public TerminalNode INT_HEX_LIT() { return getToken(Lc3Parser.INT_HEX_LIT, 0); }
 		public BlkwContext(InnerStatementContext ctx) { copyFrom(ctx); }
 		@Override
 		public void enterRule(ParseTreeListener listener) {
@@ -918,7 +929,16 @@ public class Lc3Parser extends Parser {
 				setState(91);
 				match(BLKW);
 				setState(92);
-				match(INT_LIT);
+				((BlkwContext)_localctx).val = _input.LT(1);
+				_la = _input.LA(1);
+				if ( !(_la==INT_DEC_LIT || _la==INT_HEX_LIT) ) {
+					((BlkwContext)_localctx).val = (Token)_errHandler.recoverInline(this);
+				}
+				else {
+					if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
+					_errHandler.reportMatch(this);
+					consume();
+				}
 				}
 				break;
 			case PUTS:
@@ -999,7 +1019,7 @@ public class Lc3Parser extends Parser {
 		"&\2\2Fe\7\t\2\2GH\7\25\2\2HI\7%\2\2IJ\7&\2\2Je\7\'\2\2KL\7\30\2\2LM\7"+
 		"%\2\2MN\7&\2\2Ne\7\'\2\2OP\7\26\2\2PQ\7%\2\2QR\7&\2\2Re\7\'\2\2ST\7\27"+
 		"\2\2TU\7%\2\2UV\7&\2\2VW\7%\2\2WX\7&\2\2Xe\7\t\2\2YZ\7\16\2\2Ze\t\3\2"+
-		"\2[\\\7\20\2\2\\e\7\13\2\2]^\7\17\2\2^e\7\b\2\2_e\7$\2\2`e\7#\2\2ae\7"+
+		"\2[\\\7\20\2\2\\e\7\13\2\2]^\7\17\2\2^e\t\3\2\2_e\7$\2\2`e\7#\2\2ae\7"+
 		"\"\2\2be\7 \2\2ce\7\r\2\2d\24\3\2\2\2d\26\3\2\2\2d\34\3\2\2\2d\"\3\2\2"+
 		"\2d&\3\2\2\2d(\3\2\2\2d\63\3\2\2\2d\64\3\2\2\2d\66\3\2\2\2d\67\3\2\2\2"+
 		"d9\3\2\2\2d=\3\2\2\2dA\3\2\2\2dG\3\2\2\2dK\3\2\2\2dO\3\2\2\2dS\3\2\2\2"+

@@ -124,6 +124,18 @@ public interface LittleListener extends ParseTreeListener {
 	 */
 	void exitCopy(LittleParser.CopyContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code or}
+	 * labeled alternative in {@link LittleParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterOr(LittleParser.OrContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code or}
+	 * labeled alternative in {@link LittleParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitOr(LittleParser.OrContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code variableReference}
 	 * labeled alternative in {@link LittleParser#expression}.
 	 * @param ctx the parse tree
@@ -232,6 +244,18 @@ public interface LittleListener extends ParseTreeListener {
 	 */
 	void exitStringLiteral(LittleParser.StringLiteralContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code and}
+	 * labeled alternative in {@link LittleParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterAnd(LittleParser.AndContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code and}
+	 * labeled alternative in {@link LittleParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitAnd(LittleParser.AndContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code equals}
 	 * labeled alternative in {@link LittleParser#expression}.
 	 * @param ctx the parse tree
@@ -267,6 +291,18 @@ public interface LittleListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitGetc(LittleParser.GetcContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code greater}
+	 * labeled alternative in {@link LittleParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterGreater(LittleParser.GreaterContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code greater}
+	 * labeled alternative in {@link LittleParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitGreater(LittleParser.GreaterContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code addition}
 	 * labeled alternative in {@link LittleParser#expression}.

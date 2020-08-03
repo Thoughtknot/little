@@ -1,12 +1,16 @@
 # Little
 
-This is a small programming language compiling to LC3 assembly & LC3 machine code.
+This is a small programming language compiling to LC3 (Little Computer 3) assembly & LC3 machine code.
 
-Currently doesn't have a main executable.
+## Building:
 
-Building:
+`mvn clean package`
 
-`mvn install`
+# Running:
+
+To compile Little to an LC3 machine code file:
+`java -cp target/little-jar-with-dependencies.jar org.aldous.little.Little --f src/program.ltl --o bin/program.obj --a`
+
 
 Examples:
 ```

@@ -1,4 +1,4 @@
-// Generated from Lc3.g4 by ANTLR 4.7.1
+// Generated from Lc3.g4 by ANTLR 4.7.2
 
 package org.aldous.little.assembler;
 
@@ -13,7 +13,7 @@ import org.antlr.v4.runtime.misc.*;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
 public class Lc3Lexer extends Lexer {
-	static { RuntimeMetaData.checkVersion("4.7.1", RuntimeMetaData.VERSION); }
+	static { RuntimeMetaData.checkVersion("4.7.2", RuntimeMetaData.VERSION); }
 
 	protected static final DFA[] _decisionToDFA;
 	protected static final PredictionContextCache _sharedContextCache =
@@ -32,28 +32,37 @@ public class Lc3Lexer extends Lexer {
 		"DEFAULT_MODE"
 	};
 
-	public static final String[] ruleNames = {
-		"T__0", "T__1", "T__2", "NEWLINE", "WS", "INT_LIT", "INT_DEC_LIT", "INT_HEX_LIT", 
-		"STR_LIT", "ORIG", "END", "FILL", "BLKW", "STRINGZ", "BR", "LDI", "LD", 
-		"LDR", "LEA", "STI", "STR", "ST", "JMP", "JSR", "JSRR", "RET", "ADD", 
-		"AND", "NOT", "HALT", "IN", "OUT", "GETC", "PUTS", "REGISTER", "COMMA", 
-		"LABEL"
-	};
+	private static String[] makeRuleNames() {
+		return new String[] {
+			"T__0", "T__1", "T__2", "NEWLINE", "WS", "INT_LIT", "INT_DEC_LIT", "INT_HEX_LIT", 
+			"STR_LIT", "ORIG", "END", "FILL", "BLKW", "STRINGZ", "BR", "LDI", "LD", 
+			"LDR", "LEA", "STI", "STR", "ST", "JMP", "JSR", "JSRR", "RET", "ADD", 
+			"AND", "NOT", "HALT", "IN", "OUT", "GETC", "PUTS", "REGISTER", "COMMA", 
+			"LABEL"
+		};
+	}
+	public static final String[] ruleNames = makeRuleNames();
 
-	private static final String[] _LITERAL_NAMES = {
-		null, "'n'", "'z'", "'p'", "'\n'", null, null, null, null, null, "'.ORIG'", 
-		"'.END'", "'.FILL'", "'.BLKW'", "'.STRINGZ'", "'BR'", "'LDI'", "'LD'", 
-		"'LDR'", "'LEA'", "'STI'", "'STR'", "'ST'", "'JMP'", "'JSR'", "'JSRR'", 
-		"'RET'", "'ADD'", "'AND'", "'NOT'", "'HALT'", "'IN'", "'OUT'", "'GETC'", 
-		"'PUTS'", null, "','"
-	};
-	private static final String[] _SYMBOLIC_NAMES = {
-		null, null, null, null, "NEWLINE", "WS", "INT_LIT", "INT_DEC_LIT", "INT_HEX_LIT", 
-		"STR_LIT", "ORIG", "END", "FILL", "BLKW", "STRINGZ", "BR", "LDI", "LD", 
-		"LDR", "LEA", "STI", "STR", "ST", "JMP", "JSR", "JSRR", "RET", "ADD", 
-		"AND", "NOT", "HALT", "IN", "OUT", "GETC", "PUTS", "REGISTER", "COMMA", 
-		"LABEL"
-	};
+	private static String[] makeLiteralNames() {
+		return new String[] {
+			null, "'n'", "'z'", "'p'", "'\n'", null, null, null, null, null, "'.ORIG'", 
+			"'.END'", "'.FILL'", "'.BLKW'", "'.STRINGZ'", "'BR'", "'LDI'", "'LD'", 
+			"'LDR'", "'LEA'", "'STI'", "'STR'", "'ST'", "'JMP'", "'JSR'", "'JSRR'", 
+			"'RET'", "'ADD'", "'AND'", "'NOT'", "'HALT'", "'IN'", "'OUT'", "'GETC'", 
+			"'PUTS'", null, "','"
+		};
+	}
+	private static final String[] _LITERAL_NAMES = makeLiteralNames();
+	private static String[] makeSymbolicNames() {
+		return new String[] {
+			null, null, null, null, "NEWLINE", "WS", "INT_LIT", "INT_DEC_LIT", "INT_HEX_LIT", 
+			"STR_LIT", "ORIG", "END", "FILL", "BLKW", "STRINGZ", "BR", "LDI", "LD", 
+			"LDR", "LEA", "STI", "STR", "ST", "JMP", "JSR", "JSRR", "RET", "ADD", 
+			"AND", "NOT", "HALT", "IN", "OUT", "GETC", "PUTS", "REGISTER", "COMMA", 
+			"LABEL"
+		};
+	}
+	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
 	public static final Vocabulary VOCABULARY = new VocabularyImpl(_LITERAL_NAMES, _SYMBOLIC_NAMES);
 
 	/**
