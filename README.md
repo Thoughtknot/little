@@ -10,9 +10,13 @@ This is a small programming language compiling to LC3 (Little Computer 3) assemb
 
 To compile Little to an LC3 machine code file:
 `java -cp target/little-jar-with-dependencies.jar org.aldous.little.Little --f src/program.ltl --o bin/program.obj --a`
+(--a creates a parallel LC3 assembly file of the intermediate state between Little and LC3 machine code.)
 
 
-Examples:
+To assemble LC3 assembly language:
+`java -cp target/little-jar-with-dependencies.jar org.aldous.little.assembler.Lc3a --f test.lc3 --o test.obj`
+
+## Examples:
 ```
 def K;
 def L;
